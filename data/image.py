@@ -27,7 +27,7 @@ class Credit(object):
 		# 每张图片进行下列操作
 		for i in self.train_images:
 			
-			
+
 			image = cv2.imread(i, cv2.IMREAD_COLOR)
 
 			image = self.resize(image)
@@ -96,7 +96,7 @@ class Credit(object):
 	def region(self, image):
 		kernel = np.ones((20, 20), np.uint8)
 		# image = image**2
-		img = cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, kernel) # OPEN
+		img = cv2.morphologyEx(image, cv2.MORPH_GRADIENT, kernel) # OPEN
 		# img = cv2.addWeighted(image, 1, img, -1, 0)
 
 		return img, image
