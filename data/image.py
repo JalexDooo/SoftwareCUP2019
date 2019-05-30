@@ -37,8 +37,18 @@ class Credit(object):
 			image = self.blur1(image)
 			image = self.gray(image)
 
+			# 旋转矫正
+			# img, image = self.rotation(image)
+
+			image = cv2.Canny(image, 50, 200)
+
+			img, image = self.myregion(image)
+
+
+
+
 			
-			img, image = self.region(image)
+			# img, image = self.region(image)
 
 			# img = self.threshold(img)
 
@@ -52,7 +62,7 @@ class Credit(object):
 
 
 
-			cv2.imshow('test', img)
+			cv2.imshow('test', image)
 			cv2.waitKey(0)
 
 			
@@ -70,6 +80,76 @@ class Credit(object):
 			# image = self.conv2d(image)
 			self.myshow(image, d1, d2)
 			'''
+
+	def myregion(self, image):
+		# print(image.shape)
+
+
+		
+		height, width = image.shape
+		# print(height, width)
+		bit = int(height/2)
+		tens = int(height/5)
+
+
+
+
+
+		image = image[bit-tens:bit+tens, :]
+		
+		img = image.copy()
+
+		kernel = np.ones((3, 19), np.uint8) # 4, 19
+		image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
+		image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+
+		kernel = np.ones((3, 10), np.uint8)
+
+		image = cv2.dilate(image, kernel)
+
+		kernel = np.ones((3, 3), np.uint8)
+		image = cv2.erode(image, kernel)
+
+
+		image, contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+		contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 2000]
+
+
+		digit_contours = []
+		for cnt in contours:
+			rect = cv2.minAreaRect(cnt)
+			area_width, area_height = rect[1]
+			if area_width < area_height:
+				area_width, area_height = area_height, area_width
+			# wh_ratio = area_width / area_height
+			# if wh_ratio > 2 and wh_ratio < 5.5:
+			digit_contours.append(rect)
+			box = cv2.boxPoints(rect)
+			box = np.int0(box)
+			img = cv2.drawContours(img, [box], 0, (255, 255, 255), 2)
+
+
+		# digit_imgs = []
+
+		# for rect in digit_contours:
+		# 	if rect[2] > -1 and rect[2] < 1:
+		# 		angle = 1
+		# 	else:
+		# 		angle = rect[2]
+
+		# 	rect = (rect[0], (rect[1][0]+5, rect[1][1]+5), angle)
+
+		# 	print(rect)
+
+		# npimage = np.sum(image, axis=1)
+
+		# print(npimage/255)
+		# print('image.shape:',image.shape, ' length:', len(npimage))
+
+		# print(np.where(npimage == np.max(npimage)))
+
+		return image, img
 			
 	def resize(self, image):
 		height, width = image.shape[:2]
@@ -91,13 +171,13 @@ class Credit(object):
 	def blur1(self, image):
 
 		# return cv2.GaussianBlur(image, (3, 3), 0)
-		return cv2.medianBlur(image, 3)
+		return cv2.medianBlur(image, 5)
 
 	def region(self, image):
 		kernel = np.ones((20, 20), np.uint8)
 		# image = image**2
-		img = cv2.morphologyEx(image, cv2.MORPH_GRADIENT, kernel) # OPEN
-		# img = cv2.addWeighted(image, 1, img, -1, 0)
+		img = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel) # OPEN
+		img = cv2.addWeighted(image, 1, img, -1, 0)
 
 		return img, image
 
@@ -112,11 +192,13 @@ class Credit(object):
 		return image
 	
 	def edge(self, image):
-		image = cv2.Canny(image, 100, 200)
+		image = cv2.Canny(image, 50, 200) # 100, 200
 
-		kernel = np.ones((4, 19), np.uint8)
+		kernel = np.ones((4, 19), np.uint8) # 4, 19
 		image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 		image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+		# image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+		# image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
 
 		return image
 
@@ -137,6 +219,58 @@ class Credit(object):
 
 		return image, contours, hierarchy
 
+	def rotation(slef, image):
+		
+
+		ret, image = cv2.threshold(image, 0, 255, 
+			cv2.THRESH_BINARY
+			+
+			cv2.THRESH_OTSU
+			)
+
+		img = image
+		kernel = np.ones((20, 20), np.uint8)
+		# image = image**2
+		img = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel) # OPEN
+		img = cv2.addWeighted(image, 1, img, -1, 0)
+
+
+		img = cv2.Canny(img, 50, 200) # 100, 200
+
+		kernel = np.ones((4, 19), np.uint8) # 4, 19
+		img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+		img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
+
+
+
+
+
+		# img, contours, hierarchy = cv2.findContours(img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+		# c = sorted(contours, key=cv2.contourArea, reverse=True)[1]
+
+
+		c = np.column_stack(np.where(img > 0))
+		
+		rect = cv2.minAreaRect(c)
+
+		angle = rect[2]
+
+
+		box = np.int0(cv2.boxPoints(rect))
+		draw_img = cv2.drawContours(image.copy(), [box], -1, (0, 0, 255), 3)
+		rows, cols = image.shape[:2]
+		M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+		result_img = cv2.warpAffine(image, M, (cols, rows))
+
+
+
+
+		print(angle)
+		
+
+
+
+		return result_img, image
 			
 			
 			
@@ -244,7 +378,6 @@ if __name__ == '__main__':
 	
 	dataset_path = '.'
 	test = Credit(dataset_path)
-	
 
 	# image1 = cv2.imread('./duoduo.jpeg', cv2.IMREAD_COLOR)
 	# image1 = cv2.resize(image1, (int(image1.shape[1]/4), int(image1.shape[0]/4)), interpolation=cv2.INTER_AREA)
