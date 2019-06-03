@@ -90,7 +90,7 @@ class Credit(object):
 		# print(height, width)
 		bit = int(height/2)
 		tens = int(height/5)
-
+		
 
 
 

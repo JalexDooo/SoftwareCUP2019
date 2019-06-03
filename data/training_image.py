@@ -28,21 +28,39 @@ class digitOCR(data.Dataset):
 
 		if self.train:
 			self.data_path = self.data_path[:int(0.7*len(self.data_path))]
-		elif self.test:
+		else:
 			self.data_path = self.data_path[int(0.7*len(self.data_path)):]
 
+		for path in self.data_path:
+			image = cv2.imread(path, cv2.IMREAD_COLOR)
+			if image.shape[0] != 46:
+				print('111')
+			if image.shape[1] != 120:
+				print('222')
+			if image.shape[2] != 3:
+				print('333')
+			# print(image.shape)
 
-		# for data in self.data_path:
+		if transforms is None:
+			self.transforms = T.Compose([
+					T.ToTensor()
+				])
 
 
-		# print(self.data_path)
+
+	def __getitem__(self, index): # 46 * 120 * 3 -> 4 * 46 * 30 * 3
+
+		image_path = self.data_path[index]
+
+		data = cv2.imread(image_path, cv2.IMREAD_COLOR)
+
+		data = self.transforms(data)
+
+		label = image_path.split('/')[-1][:4]
 
 
-	def __getitem__(self, index):
 
-		image_path = 
-
-		return index
+		return data, label
 
 	def __len__(self):
 
@@ -59,6 +77,15 @@ if __name__ == '__main__':
 	training_path = './images'
 
 	test = digitOCR(root=training_path)
+
+	print(test[0])
+	image, label = test[0]
+
+	image = (image.numpy()*255).astype('uint8')
+	image = np.transpose(image, (1, 2, 0))
+	print(image)
+	cv2.imshow('test', image)
+	cv2.waitKey()
 
 
 
